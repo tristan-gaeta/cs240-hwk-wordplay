@@ -1,116 +1,139 @@
-let sixLetterIndices = [];
-for(let i = 0; i < dictionary.length; i++){
-    if (dictionary[i].length == 6){
-        sixLetterIndices.push(i);
+class Game {
+    constructor() {
+        this.sixLetterIndices = [];
+        this.filterDictionary();
+        this.rootWord;
+        this.sub_words;
+        this.word_stuatus;
+        this.shuffleRoot;
+        this.winStatus;
+        this.numCorrect;
     }
-    else if (dictionary[i].length > 6 || dictionary[i].length < 3){
-        dictionary.splice(i,1);
-        i--;
+
+    play() {
+        let randomIndex = Math.floor(Math.random() * this.sixLetterIndices.length);
+        let root = dictionary[this.sixLetterIndices[randomIndex]];
+        this.playWithRoot(root);
     }
-}
 
-let randomIndex = Math.floor(Math.random()*sixLetterIndices.length);
-play(dictionary[sixLetterIndices[randomIndex]]);
+    playWithRoot(root){
+        const startTime = Date.now();
+        const endTime = startTime + 160000;
 
-function play(root){
-    
-    const rootWord = root;
-    let sub_words = find_sub_words_for(rootWord);
-    let word_status = sub_words.map(function (_){
-        return false;
-    });
-    let shuffleRoot = shuffleWord(rootWord);
+        this.newPlay(root)
 
-    let winStatus = false;
-    let numCorrect = 0;
+        this.printGame();
+        let input = prompt(`Guess a word:`);
 
-    printGame(`Availiable letters: ${shuffleRoot}`,sub_words,word_status);
-    let input = prompt(`Guess a word:`);
-
-    while (input != null && !(input.toLocaleUpperCase() === `CANCEL`)){
-        if(input == `*`){
-            shuffleRoot = shuffleWord(shuffleRoot);
-        }else if(input.length < 3){
-            alert(`That word is too short.`);
-        }else if(input.length > 6){
-            alert(`That word is too long.`);
-        }else{  //valid entry
-            let index = sub_words.indexOf(input)
-            if (index != -1){
-                if(word_status[index]){
-                    alert(`You've already found "${input}".`);
-                }else{
-                    alert(`Correct!`);
-                    word_status[index] = true;
-                    numCorrect++;
+        while (input != null && !(input.toLocaleUpperCase() === `CANCEL`)) {
+            if (input == `*`) {
+                this.shuffleRoot = this.shuffleWord(this.shuffleRoot);
+            } else if (input.length < 3) {
+                alert(`That word is too short.`);
+            } else if (input.length > 6) {
+                alert(`That word is too long.`);
+            } else {  //valid entry
+                let index = this.sub_words.indexOf(input)
+                if (index != -1) {
+                    if (this.word_status[index]) {
+                        alert(`You've already found "${input}".`);
+                    } else {
+                        alert(`Correct!`);
+                        this.word_status[index] = true;
+                        this.numCorrect++;
+                    }
+                } else {
+                    alert(`"${input}" is not a valid word.`);
                 }
+            }
+
+            this.printGame();
+
+            if (this.numCorrect == this.sub_words.length) {
+                this.winStatus = true;
+                break;
+            }else if(Date.now() >= endTime){
+                alert('Time is Up!')
+                break;
+            }
+            
+            input = prompt('Guess a word:');
+        }
+        this.endGame();
+    }
+
+    endGame(){
+        if (this.winStatus) {
+            alert(`Congratulations! You guessed all ${this.sub_words.length} words!`);
+        } else {
+            this.word_status = this.sub_words.map(_ => true);
+        }
+        this.printGame(`You guessed ${this.numCorrect} out of ${this.sub_words.length} words!\n`);
+    }
+
+    printGame(head = `Availiable letters: ${this.shuffleRoot}\n`){
+        console.clear();
+        let out = head;
+        for (let i = 0; i < this.sub_words.length; i++){
+            if (this.word_status[i]){
+                out += this.sub_words[i]+`\n`;
             }else{
-                alert(`"${input}" is not a valid word.`);
+                let log = `-`;
+                out += log.repeat(this.sub_words[i].length)+`\n`;
             }
         }
-
-        printGame(`Availiable letters: ${shuffleRoot}`,sub_words,word_status);
-
-        if(numCorrect == sub_words.length){
-            winStatus = true;
-            break;
+        console.log(out);
+    }
+    
+    shuffleWord(inStr){
+        if (inStr.length == 1){
+            return inStr;
         }
-
-        input = prompt('Guess a word:');
+        let randIndex = Math.floor(inStr.length * Math.random());
+        let randChar = inStr.charAt(randIndex);
+        inStr = inStr.replace(randChar,``);
+        return randChar+this.shuffleWord(inStr);
     }
-
-    if(winStatus){
-        alert(`Congratulations! You guessed all ${sub_words.length} words!`);
-    }else{
-        word_status = sub_words.map(function (_){
-            return true;
-        });
-    }
-    printGame(`You guessed ${numCorrect} out of ${sub_words.length} words!`,sub_words,word_status);
-}
-
-function printGame(head,sub_words,word_status){
-    console.clear();
-    out = head + `\n`
-    for (let i = 0; i < sub_words.length; i++){
-        if (word_status[i]){
-            out += sub_words[i]+`\n`;
-        }else{
-            log = `-`;
-            out += log.repeat(sub_words[i].length)+`\n`;
-        }
-    }
-    console.log(out);
-}
-
-function shuffleWord(inStr){
-    if (inStr.length == 1){
-        return inStr;
-    }
-    let chars = inStr.split(``);
-    let randIndex = Math.floor(chars.length * Math.random());
-    let randChar = chars[randIndex];
-    inStr = inStr.replace(randChar,``);
-    return randChar+shuffleWord(inStr);
-}
-
-function find_sub_words_for(rootWord){
-    let out = []
-    for(let d of dictionary){
-        let root = rootWord;
-        let i = 0;
-        while(true){
-            let prevRoot = root;
-            root = root.replace(d.charAt(i),'')
-            if (root == prevRoot){
-                break;
+    
+    find_sub_words_for(rootWord){
+        let out = []
+        for(let d of dictionary){
+            let root = rootWord;
+            let i = 0;
+            while(true){
+                let prevRoot = root;
+                root = root.replace(d.charAt(i),'')
+                if (root == prevRoot){
+                    break;
+                }
+                i++;
+                if (i == d.length){
+                    out.push(d);
+                    break;
+                }
             }
-            i++;
-            if (i == d.length){
-                out.push(d);
-                break;
+        }
+        return out;
+    }
+
+    newPlay(root){
+        this.rootWord = root;
+        this.sub_words = this.find_sub_words_for(this.rootWord);
+        this.word_status = this.sub_words.map(_ => false);
+        this.shuffleRoot = this.shuffleWord(this.rootWord);
+        this.winStatus = false;
+        this.numCorrect = 0;
+    }
+
+    filterDictionary(){
+        for (let i = 0; i < dictionary.length; i++) {
+            if (dictionary[i].length == 6) {
+                this.sixLetterIndices.push(i);
+            }
+            else if (dictionary[i].length > 6 || dictionary[i].length < 3) {
+                dictionary.splice(i, 1);
+                i--;
             }
         }
     }
-    return out;
 }
